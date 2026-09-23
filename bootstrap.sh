@@ -136,6 +136,7 @@ summary() {
   fi
   if [ "$OS" = Darwin ]; then
     printf '%s\n' "Next:" \
+      "  - Open a new terminal: this one started before brew/Nix were on PATH." \
       "  - Log out and back in so every macOS setting takes effect." \
       "  - Run 'dot drift' to compare installed Homebrew packages against the repo."
   else

@@ -5,6 +5,10 @@
     ./homebrew.nix
   ];
 
+  # Activation steps that may fail without aborting the switch append here;
+  # `dot switch` recreates it beforehand and prints it afterwards.
+  _module.args.switchWarnings = "/Users/${user.name}/.local/state/dotfiles/switch-warnings.log";
+
   nixpkgs.hostPlatform = "aarch64-darwin";
   nixpkgs.config.allowUnfree = true;
 

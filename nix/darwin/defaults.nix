@@ -2,7 +2,12 @@
 # Typed nix-darwin options where they exist; everything else goes through
 # CustomUserPreferences (`defaults write`) or the currentHost script at the bottom.
 # To find the key for a setting you change in System Settings: `dot watch-defaults`.
-{ lib, user, ... }:
+{
+  lib,
+  user,
+  switchWarnings,
+  ...
+}:
 let
   # Every prefs/<domain>.json (captured with `dot capture <domain> [key]`) is
   # written to that defaults domain on switch.
@@ -11,9 +16,7 @@ let
     lib.nameValuePair (lib.removeSuffix ".json" file) (builtins.fromJSON (builtins.readFile (./prefs + "/${file}")))
   ) (lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".json" name) (builtins.readDir ./prefs));
 
-  home = "/Users/${user.name}";
-  # `dot switch` truncates this before each switch and prints it afterwards.
-  warnings = "${home}/.local/state/dotfiles/switch-warnings.log";
+  warnings = switchWarnings;
 in
 {
   system.defaults = {

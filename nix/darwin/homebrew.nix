@@ -1,7 +1,12 @@
 # macOS-only packages: GUI apps (casks), Mac App Store apps, and the few CLI
 # tools that aren't in nixpkgs. Every other CLI tool lives in nix/home/packages.nix
 # so macOS and Linux share one list.
-{ lib, ... }:
+{
+  config,
+  lib,
+  switchWarnings,
+  ...
+}:
 let
   # Mac App Store installs need a signed-in Apple ID. Switched off while testing
   # in a VM that can't sign in; set back to true to install masApps again.
@@ -10,6 +15,9 @@ in
 {
   homebrew = {
     enable = true;
+    # Puts brew on PATH for every zsh via /etc/zshrc (independent of home-manager).
+    # fish does its own setup in config/fish/config.fish so Nix tools keep precedence.
+    enableZshIntegration = true;
     onActivation = {
       # Switches stay fast and offline-safe; `dot update` upgrades explicitly.
       autoUpdate = false;
@@ -20,14 +28,16 @@ in
       cleanup = "none";
     };
 
-    taps = [
+    # Homebrew 6+ refuses to load formulae/casks from third-party taps unless
+    # they're trusted (HOMEBREW_REQUIRE_TAP_TRUST), which aborts `brew bundle`.
+    taps = map (name: { inherit name; trusted = true; }) [
       "as-foss/mandible"
       "domt4/autoupdate"
       "nikitabobko/tap"
     ];
 
     brews = [
-      "mandible"
+      "as-foss/mandible/mandible"
       "quien"
       "taproom"
       "gcc"
@@ -88,7 +98,6 @@ in
       "tailscale-app"
       "vorssaint"
       "whatsapp@beta"
-      "xum"
       "zoom"
 
       # Fonts
@@ -108,4 +117,21 @@ in
       Xcode = 497799835;
     };
   };
+
+  # nix-darwin runs `brew bundle` before the home-manager step, and by default a
+  # single failing tap/cask aborts the whole activation (no dotfiles linked, the
+  # new generation never becomes current). Run it tolerantly instead: a failure is
+  # logged to the switch warnings that `dot` prints, and activation carries on.
+  system.activationScripts.homebrew.text = lib.mkForce ''
+    echo >&2 "Homebrew bundle..."
+    if [ -f "${config.homebrew.prefix}/bin/brew" ]; then
+      if ! ${config.homebrew.onActivation.brewBundleCmd { onlyCheck = false; }}; then
+        printf '%s\n  %s\n' "Homebrew bundle failed: some apps/tools from nix/darwin/homebrew.nix may be missing" \
+          "fix: see the brew output above, then run 'dot'" | tee -a ${switchWarnings} >&2
+      fi
+    else
+      printf '%s\n' "Homebrew is not installed: skipped casks/brews; install it (bootstrap.sh does) and run 'dot'" |
+        tee -a ${switchWarnings} >&2
+    fi
+  '';
 }
