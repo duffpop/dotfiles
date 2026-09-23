@@ -1,7 +1,12 @@
 # macOS-only packages: GUI apps (casks), Mac App Store apps, and the few CLI
 # tools that aren't in nixpkgs. Every other CLI tool lives in nix/home/packages.nix
 # so macOS and Linux share one list.
-{ ... }:
+{ lib, ... }:
+let
+  # Mac App Store installs need a signed-in Apple ID. Switched off while testing
+  # in a VM that can't sign in; set back to true to install masApps again.
+  installMasApps = false;
+in
 {
   homebrew = {
     enable = true;
@@ -92,7 +97,7 @@
       "font-monaspace-var"
     ];
 
-    masApps = {
+    masApps = lib.optionalAttrs installMasApps {
       GarageBand = 682658836;
       iMovie = 408981434;
       Keynote = 409183694;
