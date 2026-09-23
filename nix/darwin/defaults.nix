@@ -55,7 +55,6 @@ in
       launchanim = false;
       showhidden = true; # translucent icons for hidden apps
       show-process-indicators = true;
-      mouse-over-hilite-stack = true;
       enable-spring-load-actions-on-all-items = true;
       mru-spaces = false; # don't rearrange Spaces by recent use
       wvous-br-corner = 1; # bottom-right hot corner: disabled (default is Quick Note)
