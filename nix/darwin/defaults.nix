@@ -11,7 +11,9 @@ let
     lib.nameValuePair (lib.removeSuffix ".json" file) (builtins.fromJSON (builtins.readFile (./prefs + "/${file}")))
   ) (lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".json" name) (builtins.readDir ./prefs));
 
-  asUser = cmd: ''launchctl asuser "$(id -u -- ${user.name})" sudo --user=${user.name} -- ${cmd}'';
+  home = "/Users/${user.name}";
+  # `dot switch` truncates this before each switch and prints it afterwards.
+  warnings = "${home}/.local/state/dotfiles/switch-warnings.log";
 in
 {
   system.defaults = {
@@ -133,10 +135,6 @@ in
       askForPasswordDelay = 0;
     };
     hitoolbox.AppleFnUsageType = "Do Nothing"; # globe/fn key
-    universalaccess = {
-      reduceMotion = true;
-      reduceTransparency = true;
-    };
     ActivityMonitor = {
       ShowCategory = 102; # my processes
       OpenMainWindow = true;
@@ -175,7 +173,6 @@ in
         WarnOnEmptyTrash = false;
         FXArrangeGroupViewBy = "Name";
       };
-      "com.apple.universalaccess".increaseContrast = true;
       "com.apple.desktopservices".DSDontWriteNetworkStores = true;
       "com.apple.loginwindow" = {
         TALLogoutSavesState = false; # don't reopen windows at login
@@ -218,31 +215,50 @@ in
     };
   };
 
-  # Settings macOS keeps per-machine ("ByHost"/-currentHost), which the
-  # typed options above can't target.
+  # Writes nix-darwin's own defaults step can't do, run so that a failure is
+  # logged to ${warnings} instead of aborting the whole activation:
+  #  - com.apple.universalaccess is privacy-protected: writing it needs Full
+  #    Disk Access for the terminal running `dot switch`.
+  #  - "ByHost" (-currentHost) settings, which the typed options can't target.
   system.activationScripts.postActivation.text = ''
-    echo >&2 "currentHost defaults..."
-    ${asUser "defaults -currentHost write -g NSStatusItemSpacing -int 10"}
-    ${asUser "defaults -currentHost write -g NSStatusItemSelectionPadding -int 10"}
-    ${asUser "defaults -currentHost write -g com.apple.mouse.tapBehavior -int 1"}
-    ${asUser "defaults -currentHost write -g com.apple.trackpad.enableSecondaryClick -bool true"}
-    ${asUser "defaults -currentHost write -g com.apple.trackpad.threeFingerDragGesture -bool true"}
-    ${asUser "defaults -currentHost write -g com.apple.trackpad.threeFingerTapGesture -int 0"}
-    ${asUser "defaults -currentHost write -g com.apple.trackpad.threeFingerHorizSwipeGesture -int 0"}
-    ${asUser "defaults -currentHost write -g com.apple.trackpad.threeFingerVertSwipeGesture -int 0"}
-    ${asUser "defaults -currentHost write -g com.apple.trackpad.fourFingerHorizSwipeGesture -int 2"}
-    ${asUser "defaults -currentHost write -g com.apple.trackpad.fourFingerVertSwipeGesture -int 2"}
-    ${asUser "defaults -currentHost write -g com.apple.trackpad.fourFingerPinchSwipeGesture -int 2"}
-    ${asUser "defaults -currentHost write -g com.apple.trackpad.fiveFingerPinchSwipeGesture -int 2"}
-    ${asUser "defaults -currentHost write -g com.apple.trackpad.twoFingerDoubleTapGesture -int 1"}
-    ${asUser "defaults -currentHost write -g com.apple.trackpad.twoFingerFromRightEdgeSwipeGesture -int 3"}
-    ${asUser "defaults -currentHost write com.apple.controlcenter BatteryShowPercentage -bool true"}
-    ${asUser "defaults -currentHost write com.apple.controlcenter Display -int 16"}
-    ${asUser "defaults -currentHost write com.apple.controlcenter FocusModes -int 16"}
-    ${asUser "defaults -currentHost write com.apple.controlcenter ScreenMirroring -int 16"}
+    echo >&2 "tolerant user defaults..."
+    asUser() { launchctl asuser "$(id -u -- ${user.name})" sudo --user=${user.name} -- "$@"; }
+    asUser mkdir -p "$(dirname ${warnings})"
+    try() { # try <hint> <command...>
+      local hint="$1" out
+      shift
+      if ! out="$(asUser "$@" 2>&1)"; then
+        printf 'macOS setting not applied: %s\n  %s\n  fix: %s\n' "$*" "$out" "$hint" |
+          tee -a ${warnings} >&2
+      fi
+    }
+    fda="System Settings > Privacy & Security > Full Disk Access: enable your terminal, then run 'dot'"
+    try "$fda" defaults write com.apple.universalaccess reduceMotion -bool true
+    try "$fda" defaults write com.apple.universalaccess reduceTransparency -bool true
+    try "$fda" defaults write com.apple.universalaccess increaseContrast -bool true
+
+    host="re-run 'dot'; if it persists, check the key with 'dot watch-defaults'"
+    try "$host" defaults -currentHost write -g NSStatusItemSpacing -int 10
+    try "$host" defaults -currentHost write -g NSStatusItemSelectionPadding -int 10
+    try "$host" defaults -currentHost write -g com.apple.mouse.tapBehavior -int 1
+    try "$host" defaults -currentHost write -g com.apple.trackpad.enableSecondaryClick -bool true
+    try "$host" defaults -currentHost write -g com.apple.trackpad.threeFingerDragGesture -bool true
+    try "$host" defaults -currentHost write -g com.apple.trackpad.threeFingerTapGesture -int 0
+    try "$host" defaults -currentHost write -g com.apple.trackpad.threeFingerHorizSwipeGesture -int 0
+    try "$host" defaults -currentHost write -g com.apple.trackpad.threeFingerVertSwipeGesture -int 0
+    try "$host" defaults -currentHost write -g com.apple.trackpad.fourFingerHorizSwipeGesture -int 2
+    try "$host" defaults -currentHost write -g com.apple.trackpad.fourFingerVertSwipeGesture -int 2
+    try "$host" defaults -currentHost write -g com.apple.trackpad.fourFingerPinchSwipeGesture -int 2
+    try "$host" defaults -currentHost write -g com.apple.trackpad.fiveFingerPinchSwipeGesture -int 2
+    try "$host" defaults -currentHost write -g com.apple.trackpad.twoFingerDoubleTapGesture -int 1
+    try "$host" defaults -currentHost write -g com.apple.trackpad.twoFingerFromRightEdgeSwipeGesture -int 3
+    try "$host" defaults -currentHost write com.apple.controlcenter BatteryShowPercentage -bool true
+    try "$host" defaults -currentHost write com.apple.controlcenter Display -int 16
+    try "$host" defaults -currentHost write com.apple.controlcenter FocusModes -int 16
+    try "$host" defaults -currentHost write com.apple.controlcenter ScreenMirroring -int 16
 
     # Apply keyboard-shortcut and keyboard changes without logging out.
-    ${asUser "/System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u"}
+    try "log out and back in" /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
     killall -qu ${user.name} SystemUIServer ControlCenter Finder || true
   '';
 }

@@ -89,7 +89,9 @@ in
         run mkdir -p "$(dirname "$stamp")"
         [ -n "''${DRY_RUN:-}" ] || echo "$want" > "$stamp"
       else
-        echo "warning: fisher update failed; run 'fisher update' in fish" >&2
+        mkdir -p "${config.xdg.stateHome}/dotfiles"
+        echo "fish plugins not installed: fisher update failed; fix: run 'fisher update' in fish" |
+          tee -a "${config.xdg.stateHome}/dotfiles/switch-warnings.log" >&2
       fi
     fi
   '';

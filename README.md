@@ -43,6 +43,8 @@ curl -fsSL https://raw.githubusercontent.com/duffpop/dotfiles/main/bootstrap.sh 
 
 Then on macOS log out and back in; on Linux run `dot apps` to install the GUI apps.
 
+If a step fails, the script keeps going with every step that doesn't depend on it. It ends with a summary (ok / FAILED / skipped) and the path of a full log in `~/.local/state/dotfiles/bootstrap-*.log`. Fix the problem and re-run the same command; finished steps are no-ops.
+
 If your username on that machine isn't `haydenduffy`, change `user.name` in `flake.nix` first (or fork the value per machine). The repo **must** live at `~/dev/dotfiles`, because configs are symlinked to it.
 
 ### Moving this Mac over (first run)
@@ -177,7 +179,7 @@ Compared against chezmoi, yadm and GNU Stow. Nix was the only option that covers
 
 - **"Unexpected files in /etc"** on first switch: `bootstrap.sh` renames them. Otherwise `sudo mv /etc/<file> /etc/<file>.before-nix-darwin`.
 - **"Existing file … is in the way"**: switches keep a `.hm-backup` copy automatically. If an old backup already exists, delete it and re-run.
-- **`Could not write domain com.apple.universalaccess`**: give your terminal Full Disk Access (System Settings → Privacy & Security), then `dot`.
+- **"macOS setting not applied … com.apple.universalaccess"** (printed after `dot` / at the end of bootstrap): Reduce motion, Reduce transparency and Increase contrast live in a privacy-protected domain. Give your terminal Full Disk Access (System Settings → Privacy & Security → Full Disk Access), then run `dot`. Settings that can fail like this are logged to `~/.local/state/dotfiles/switch-warnings.log` instead of aborting the switch; everything else still applies.
 - **A setting didn't apply**: log out and in. Trackpad and keyboard settings are only read at login.
 - **Dock icons reset**: expected. `persistent-apps` in `defaults.nix` is the Dock's source of truth.
 - **Linux: `LC_ALL` warnings**: `dot apps apt` generates `en_GB.UTF-8`, or run `sudo locale-gen en_GB.UTF-8`.

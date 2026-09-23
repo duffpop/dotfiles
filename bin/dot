@@ -21,6 +21,10 @@ die() {
 macos_only() { [ "$OS" = Darwin ] || die "$1 is macOS only"; }
 nix_bin() { command -v nix || echo /nix/var/nix/profiles/default/bin/nix; }
 
+# Activation steps that can fail without breaking the switch (protected macOS
+# settings, fisher) append here instead of aborting; printed after the switch.
+WARNINGS="$HOME/.local/state/dotfiles/switch-warnings.log"
+
 rebuild() { # rebuild <switch|build> [args...]
   local action="$1"
   shift
@@ -32,7 +36,7 @@ rebuild() { # rebuild <switch|build> [args...]
       cmd=("$(nix_bin)" run nix-darwin/master#darwin-rebuild --)
     fi
     if [ "$action" = switch ]; then
-      sudo "${cmd[@]}" switch --flake "$FLAKE" "$@"
+      sudo -H "${cmd[@]}" switch --flake "$FLAKE" "$@"
     else
       "${cmd[@]}" "$action" --flake "$FLAKE" "$@"
     fi
@@ -45,6 +49,19 @@ rebuild() { # rebuild <switch|build> [args...]
       "${cmd[@]}" "$action" --flake "$FLAKE" "$@"
     fi
   fi
+}
+
+cmd_switch() {
+  mkdir -p "$(dirname "$WARNINGS")"
+  rm -f "$WARNINGS" && : >"$WARNINGS" # recreate as you (root appends to it)
+  local rc=0
+  rebuild switch "$@" || rc=$?
+  # bootstrap.sh prints these in its own end-of-run summary.
+  if [ -s "$WARNINGS" ] && [ -z "${DOTFILES_BOOTSTRAP:-}" ]; then
+    printf '\n==> Switch finished with warnings (saved in %s):\n' "$WARNINGS" >&2
+    cat "$WARNINGS" >&2
+  fi
+  return "$rc"
 }
 
 current_generation() {
@@ -62,7 +79,7 @@ cmd_diff() {
 
 cmd_update() {
   nix flake update --flake "$DOTFILES" "$@"
-  rebuild switch
+  cmd_switch
   if [ "$OS" = Darwin ]; then
     brew update && brew upgrade
   fi
@@ -80,7 +97,7 @@ cmd_save() {
 
 cmd_rollback() {
   if [ "$OS" = Darwin ]; then
-    sudo "$(command -v darwin-rebuild)" --rollback
+    sudo -H "$(command -v darwin-rebuild)" --rollback
   else
     local prev
     prev="$(home-manager generations | awk 'NR==2 {print $NF}')"
@@ -93,7 +110,7 @@ cmd_gc() {
   local age="${1:-30d}"
   if [ "$OS" = Darwin ]; then
     # System generations are root-owned; home-manager ones are yours.
-    sudo "$(dirname "$(nix_bin)")/nix-collect-garbage" --delete-older-than "$age"
+    sudo -H "$(dirname "$(nix_bin)")/nix-collect-garbage" --delete-older-than "$age"
   fi
   nix-collect-garbage --delete-older-than "$age"
 }
@@ -200,11 +217,11 @@ EOF
 cmd="${1:-switch}"
 [ $# -eq 0 ] || shift
 case "$cmd" in
-switch) rebuild switch "$@" ;;
+switch) cmd_switch "$@" ;;
 build) (cd "$DOTFILES" && rebuild build "$@") ;;
 diff) cmd_diff "$@" ;;
 update) cmd_update "$@" ;;
-pull) git -C "$DOTFILES" pull --rebase --autostash && rebuild switch ;;
+pull) git -C "$DOTFILES" pull --rebase --autostash && cmd_switch ;;
 save) cmd_save "$@" ;;
 edit) cd "$DOTFILES" && exec "${EDITOR:-nvim}" . ;;
 rollback) cmd_rollback ;;
