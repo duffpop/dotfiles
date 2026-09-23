@@ -1,0 +1,10 @@
+# Nix build output
+result
+result-*
+
+# Per-machine / generated state inside live-linked config dirs
+config/git/local
+config/karabiner/automatic_backups/
+config/nvim/lazy-lock.json.bak
+config/btop/themes/
+.DS_Store

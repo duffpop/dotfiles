@@ -1,0 +1,10 @@
+[user]
+	name = Hayden Duffy
+	email = hayden@coder.com
+
+# Global excludes: ~/.config/git/ignore (git's default location).
+
+# Per-machine overrides (e.g. a different email or signing key) go in
+# ~/.config/git/local, which is not tracked.
+[include]
+	path = ~/.config/git/local

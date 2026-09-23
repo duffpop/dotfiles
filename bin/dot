@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+# dot: day-to-day driver for ~/dev/dotfiles (nix-darwin + home-manager).
+# Run `dot help` for commands. Must work with macOS /bin/bash 3.2.
+set -euo pipefail
+
+DOTFILES="${DOTFILES:-$HOME/dev/dotfiles}"
+OS="$(uname -s)"
+case "$OS" in
+Darwin) FLAKE="$DOTFILES#macbook" ;;
+Linux) FLAKE="$DOTFILES#linux-$(uname -m)" ;;
+*)
+  echo "dot: unsupported OS $OS" >&2
+  exit 1
+  ;;
+esac
+
+die() {
+  echo "dot: $*" >&2
+  exit 1
+}
+macos_only() { [ "$OS" = Darwin ] || die "$1 is macOS only"; }
+nix_bin() { command -v nix || echo /nix/var/nix/profiles/default/bin/nix; }
+
+rebuild() { # rebuild <switch|build> [args...]
+  local action="$1"
+  shift
+  if [ "$OS" = Darwin ]; then
+    local cmd
+    if command -v darwin-rebuild >/dev/null; then
+      cmd=("$(command -v darwin-rebuild)")
+    else # first run: darwin-rebuild isn't installed yet
+      cmd=("$(nix_bin)" run nix-darwin/master#darwin-rebuild --)
+    fi
+    if [ "$action" = switch ]; then
+      sudo "${cmd[@]}" switch --flake "$FLAKE" "$@"
+    else
+      "${cmd[@]}" "$action" --flake "$FLAKE" "$@"
+    fi
+  else
+    local cmd=(home-manager)
+    command -v home-manager >/dev/null || cmd=("$(nix_bin)" run home-manager/master --)
+    if [ "$action" = switch ]; then
+      "${cmd[@]}" switch -b hm-backup --flake "$FLAKE" "$@"
+    else
+      "${cmd[@]}" "$action" --flake "$FLAKE" "$@"
+    fi
+  fi
+}
+
+current_generation() {
+  if [ "$OS" = Darwin ]; then
+    echo /run/current-system
+  else
+    echo "${XDG_STATE_HOME:-$HOME/.local/state}/nix/profiles/home-manager"
+  fi
+}
+
+cmd_diff() {
+  (cd "$DOTFILES" && rebuild build "$@")
+  nix store diff-closures "$(current_generation)" "$DOTFILES/result"
+}
+
+cmd_update() {
+  nix flake update --flake "$DOTFILES" "$@"
+  rebuild switch
+  if [ "$OS" = Darwin ]; then
+    brew update && brew upgrade
+  fi
+  echo
+  git -C "$DOTFILES" --no-pager diff --stat -- flake.lock
+  echo "Commit the new lock file when happy: dot save 'flake update'"
+}
+
+cmd_save() {
+  local msg="${*:-update dotfiles}"
+  git -C "$DOTFILES" add -A
+  git -C "$DOTFILES" commit -m "$msg"
+  git -C "$DOTFILES" push
+}
+
+cmd_rollback() {
+  if [ "$OS" = Darwin ]; then
+    sudo "$(command -v darwin-rebuild)" --rollback
+  else
+    local prev
+    prev="$(home-manager generations | awk 'NR==2 {print $NF}')"
+    [ -n "$prev" ] || die "no previous generation"
+    "$prev/activate"
+  fi
+}
+
+cmd_gc() {
+  local age="${1:-30d}"
+  if [ "$OS" = Darwin ]; then
+    # System generations are root-owned; home-manager ones are yours.
+    sudo "$(dirname "$(nix_bin)")/nix-collect-garbage" --delete-older-than "$age"
+  fi
+  nix-collect-garbage --delete-older-than "$age"
+}
+
+# Compare installed Homebrew packages with nix/darwin/homebrew.nix.
+cmd_drift() {
+  macos_only "drift"
+  local cfg="$DOTFILES#darwinConfigurations.macbook.config.homebrew" tmp
+  tmp="$(mktemp -d)"
+  nix eval --json "$cfg.casks" --apply 'map (c: c.name)' | jq -r '.[] | sub(".*/"; "")' | sort >"$tmp/casks.want"
+  nix eval --json "$cfg.brews" --apply 'map (b: b.name)' | jq -r '.[] | sub(".*/"; "")' | sort >"$tmp/brews.want"
+  nix eval --json "$cfg.masApps" | jq -r '.[] | tostring' | sort >"$tmp/mas.want"
+  brew list --cask -1 | sort >"$tmp/casks.have"
+  brew list --formula --installed-on-request -1 | sort >"$tmp/brews.have"
+  mas list | awk '{print $1}' | sort >"$tmp/mas.have"
+
+  local kind extra missing hint
+  for kind in casks brews mas; do
+    extra="$(comm -13 "$tmp/$kind.want" "$tmp/$kind.have")"
+    missing="$(comm -23 "$tmp/$kind.want" "$tmp/$kind.have")"
+    hint="nix/darwin/homebrew.nix"
+    [ "$kind" != brews ] || hint="nix/home/packages.nix (preferred) or nix/darwin/homebrew.nix"
+    if [ -n "$extra" ]; then
+      echo "== $kind installed but not declared (add to $hint, or uninstall):"
+      echo "$extra" | sed 's/^/  /'
+    fi
+    if [ -n "$missing" ]; then
+      echo "== $kind declared but not installed (run: dot switch):"
+      echo "$missing" | sed 's/^/  /'
+    fi
+  done
+  rm -rf "$tmp"
+}
+
+# Save a defaults domain (or one top-level key of it) to
+# nix/darwin/prefs/<domain>.json, which nix/darwin/defaults.nix applies on switch.
+cmd_capture() {
+  macos_only "capture"
+  local domain="${1:?usage: dot capture <domain> [key...]}"
+  shift
+  local out="$DOTFILES/nix/darwin/prefs/$domain.json" new
+  # plistlib keeps plist types (bool vs int); values JSON can't hold
+  # (<data>, <date>) are skipped with a warning.
+  new="$(defaults export "$domain" - | /usr/bin/python3 -c '
+import json, plistlib, sys
+prefs = plistlib.loads(sys.stdin.buffer.read())
+keys = sys.argv[1:] or list(prefs)
+out = {}
+for k in keys:
+    if k not in prefs:
+        sys.exit(f"dot: {k!r} not found in domain")
+    try:
+        json.dumps(prefs[k])
+        out[k] = prefs[k]
+    except TypeError:
+        print(f"skipped {k!r}: contains binary/date data", file=sys.stderr)
+print(json.dumps(out, ensure_ascii=False))
+' "$@")"
+  if [ -f "$out" ]; then
+    jq -s '.[0] * .[1]' "$out" - <<<"$new" >"$out.tmp" && mv "$out.tmp" "$out"
+  else
+    jq . <<<"$new" >"$out"
+  fi
+  echo "wrote $out"
+}
+
+# Snapshot all defaults, let you flip a setting, and show what changed.
+cmd_watch_defaults() {
+  macos_only "watch-defaults"
+  local tmp
+  tmp="$(mktemp -d)"
+  defaults read >"$tmp/before" 2>/dev/null
+  defaults -currentHost read >"$tmp/before-host" 2>/dev/null
+  read -rp "Change the setting(s) in System Settings now, then press Enter... "
+  defaults read >"$tmp/after" 2>/dev/null
+  defaults -currentHost read >"$tmp/after-host" 2>/dev/null
+  git --no-pager diff --no-index --color=always "$tmp/before" "$tmp/after" || true
+  git --no-pager diff --no-index --color=always "$tmp/before-host" "$tmp/after-host" || true
+  rm -rf "$tmp"
+  echo "Add the key to nix/darwin/defaults.nix, or run: dot capture <domain> <key>"
+}
+
+usage() {
+  cat <<EOF
+dot: manage ~/dev/dotfiles
+
+  dot [switch]            apply the config (packages, settings, links)
+  dot build               build without activating
+  dot diff                build and show package changes vs. the running generation
+  dot update [input]      update flake inputs (nixpkgs, ...), switch, brew upgrade
+  dot pull                git pull, then switch (sync from another machine)
+  dot save [message]      git add -A, commit, push
+  dot edit                open the repo in \$EDITOR
+  dot rollback            activate the previous generation
+  dot gc [30d]            delete generations older than N days and collect garbage
+  dot apps [section]      Linux: install GUI apps (all|apt|flatpak|snap)
+  dot drift               macOS: Homebrew packages installed vs. declared
+  dot capture <domain> [key]
+                          macOS: save a defaults domain/key to nix/darwin/prefs/
+  dot watch-defaults      macOS: show which defaults a System Settings change wrote
+EOF
+}
+
+cmd="${1:-switch}"
+[ $# -eq 0 ] || shift
+case "$cmd" in
+switch) rebuild switch "$@" ;;
+build) (cd "$DOTFILES" && rebuild build "$@") ;;
+diff) cmd_diff "$@" ;;
+update) cmd_update "$@" ;;
+pull) git -C "$DOTFILES" pull --rebase --autostash && rebuild switch ;;
+save) cmd_save "$@" ;;
+edit) cd "$DOTFILES" && exec "${EDITOR:-nvim}" . ;;
+rollback) cmd_rollback ;;
+gc) cmd_gc "$@" ;;
+apps) exec bash "$DOTFILES/linux/apps.sh" "$@" ;;
+drift) cmd_drift ;;
+capture) cmd_capture "$@" ;;
+watch-defaults) cmd_watch_defaults ;;
+help | -h | --help) usage ;;
+*)
+  usage >&2
+  exit 1
+  ;;
+esac

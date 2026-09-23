@@ -1,0 +1,327 @@
+font-family = "MonaspiceNe Nerd Font Mono"
+
+font-style = default
+
+font-style-bold = default
+font-style-italic = default
+font-style-bold-italic = default
+
+font-synthetic-style = bold,italic,bold-italic
+
+font-feature = 'calt', 'liga', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08', 'ss09', 'calt', 'liga', 'ss01', 'cv01' 2, 'cv31' 1
+
+font-size = 14
+
+font-thicken = false
+
+alpha-blending = native
+
+grapheme-width-method = unicode
+
+freetype-load-flags = hinting,force-autohint,monochrome,autohint
+
+theme = dracula
+
+minimum-contrast = 1.1
+
+# The opacity level (opposite of transparency) of the cursor. A value of 1
+# is fully opaque and a value of 0 is fully transparent. A value less than 0
+# or greater than 1 will be clamped to the nearest valid value. Note that a
+# sufficiently small value such as 0.3 may be effectively invisible and may
+# make it difficult to find the cursor.
+cursor-opacity = 1
+
+cursor-style = block
+
+# Enables the ability to move the cursor at prompts by using `alt+click` on
+# Linux and `option+click` on macOS.
+cursor-click-to-move = true
+
+mouse-hide-while-typing = false
+
+mouse-shift-capture = true
+
+# Multiplier for scrolling distance with the mouse wheel. Any value less
+# than 0.01 or greater than 10,000 will be clamped to the nearest valid
+# value.
+# 
+# A value of "1" (default) scrolls the default amount. A value of "2" scrolls
+# double the default amount. A value of "0.5" scrolls half the default amount.
+# Et cetera.
+mouse-scroll-multiplier = 1
+
+background-opacity = 0.9
+
+background-blur = true
+
+# The opacity level (opposite of transparency) of an unfocused split.
+# Unfocused splits by default are slightly faded out to make it easier to see
+# which split is focused. To disable this feature, set this value to 1.
+# 
+# A value of 1 is fully opaque and a value of 0 is fully transparent. Because
+# "0" is not useful (it makes the window look very weird), the minimum value
+# is 0.15. This value still looks weird but you can at least see what's going
+# on. A value outside of the range 0.15 to 1 will be clamped to the nearest
+# valid value.
+unfocused-split-opacity = 0.9
+
+# The color to dim the unfocused split. Unfocused splits are dimmed by
+# rendering a semi-transparent rectangle over the split. This sets the color of
+# that rectangle and can be used to carefully control the dimming effect.
+# 
+# This will default to the background color.
+# 
+# Specified as either hex (`#RRGGBB` or `RRGGBB`) or a named X11 color.
+unfocused-split-fill = 
+
+# The color of the split divider. If this is not set, a default will be chosen.
+# Specified as either hex (`#RRGGBB` or `RRGGBB`) or a named X11 color.
+split-divider-color = 
+
+# If true, keep the terminal open after the command exits. Normally, the
+# terminal window closes when the running command (such as a shell) exits.
+# With this true, the terminal window will stay open until any keypress is
+# received.
+# 
+# This is primarily useful for scripts or debugging.
+wait-after-command = false
+
+# The number of milliseconds of runtime below which we consider a process exit
+# to be abnormal. This is used to show an error message when the process exits
+# too quickly.
+# 
+# On Linux, this must be paired with a non-zero exit code. On macOS, we allow
+# any exit code because of the way shell processes are launched via the login
+# command.
+abnormal-command-exit-runtime = 250
+
+# The size of the scrollback buffer in bytes. This also includes the active
+# screen. No matter what this is set to, enough memory will always be
+# allocated for the visible screen and anything leftover is the limit for
+# the scrollback.
+# 
+# When this limit is reached, the oldest lines are removed from the
+# scrollback.
+# 
+# Scrollback currently exists completely in memory. This means that the
+# larger this value, the larger potential memory usage. Scrollback is
+# allocated lazily up to this limit, so if you set this to a very large
+# value, it will not immediately consume a lot of memory.
+# 
+# This size is per terminal surface, not for the entire application.
+# 
+# It is not currently possible to set an unlimited scrollback buffer.
+# This is a future planned feature.
+# 
+# This can be changed at runtime but will only affect new terminal surfaces.
+scrollback-limit = 50000000
+
+link-url = true
+
+# Whether to start the window in a maximized state. This setting applies
+# to new windows and does not apply to tabs, splits, etc. However, this setting
+# will apply to all new windows, not just the first one.
+maximize = false
+
+# Start new windows in fullscreen. This setting applies to new windows and
+# does not apply to tabs, splits, etc. However, this setting will apply to all
+# new windows, not just the first one.
+# 
+# On macOS, this setting does not work if window-decoration is set to
+# "false", because native fullscreen on macOS requires window decorations
+# to be set.
+fullscreen = false
+
+keybind = super+page_up=scroll_page_up
+keybind = super+ctrl+equal=equalize_splits
+keybind = super+physical:four=goto_tab:4
+keybind = super+shift+down=jump_to_prompt:1
+keybind = super+shift+w=close_window
+keybind = super+shift+left_bracket=previous_tab
+keybind = super+backspace=text:\x15
+keybind = super+alt+w=close_tab
+keybind = super+w=close_surface
+keybind = super+alt+i=inspector:toggle
+keybind = super+physical:eight=goto_tab:8
+keybind = super+alt+right=goto_split:right
+keybind = shift+up=adjust_selection:up
+keybind = super+down=jump_to_prompt:1
+keybind = super+enter=toggle_fullscreen
+keybind = super+t=new_tab
+keybind = super+c=copy_to_clipboard
+keybind = super+shift+right_bracket=next_tab
+keybind = super+physical:one=goto_tab:1
+keybind = shift+left=adjust_selection:left
+keybind = super+equal=increase_font_size:1
+keybind = shift+page_up=adjust_selection:page_up
+keybind = super+physical:three=goto_tab:3
+keybind = super+right=text:\x05
+keybind = super+d=new_split:right
+keybind = super+ctrl+down=resize_split:down,10
+keybind = shift+end=adjust_selection:end
+keybind = super+plus=increase_font_size:1
+keybind = super+q=quit
+keybind = super+home=scroll_to_top
+keybind = super+ctrl+left=resize_split:left,10
+keybind = alt+left=esc:b
+keybind = super+ctrl+up=resize_split:up,10
+keybind = super+left=text:\x01
+keybind = super+shift+up=jump_to_prompt:-1
+keybind = shift+right=adjust_selection:right
+keybind = super+comma=open_config
+keybind = super+shift+comma=reload_config
+keybind = super+minus=decrease_font_size:1
+keybind = shift+page_down=adjust_selection:page_down
+keybind = ctrl+tab=next_tab
+keybind = super+a=select_all
+keybind = alt+right=esc:f
+keybind = super+shift+enter=toggle_split_zoom
+keybind = super+alt+down=goto_split:down
+keybind = super+ctrl+f=toggle_fullscreen
+keybind = super+ctrl+right=resize_split:right,10
+keybind = super+alt+shift+j=write_screen_file:open
+keybind = shift+down=adjust_selection:down
+keybind = ctrl+shift+tab=previous_tab
+keybind = super+n=new_window
+keybind = super+alt+left=goto_split:left
+keybind = super+page_down=scroll_page_down
+keybind = super+alt+shift+w=close_all_windows
+keybind = super+alt+up=goto_split:up
+keybind = super+shift+v=paste_from_selection
+keybind = super+left_bracket=goto_split:previous
+keybind = super+physical:nine=last_tab
+keybind = super+right_bracket=goto_split:next
+keybind = super+end=scroll_to_bottom
+keybind = super+shift+j=write_screen_file:paste
+keybind = super+shift+d=new_split:down
+keybind = super+zero=reset_font_size
+keybind = super+physical:five=goto_tab:5
+keybind = shift+home=adjust_selection:home
+keybind = super+physical:seven=goto_tab:7
+keybind = super+up=jump_to_prompt:-1
+keybind = super+k=clear_screen
+keybind = super+physical:two=goto_tab:2
+keybind = super+physical:six=goto_tab:6
+keybind = super+v=paste_from_clipboard
+# Quick terminal keybind
+# keybind = global:ctrl+opt+space=toggle_quick_terminal
+# specific override for UK Keyboard hash symbol
+keybind = alt+3=text:#
+
+window-padding-x = 2
+window-padding-y = 2
+window-padding-color = background
+
+# This setting is only supported currently on macOS.
+window-vsync = true
+
+window-inherit-working-directory = true
+window-inherit-font-size = true
+window-decoration = auto
+window-subtitle = false
+window-theme = auto
+
+# The color space to use when interpreting terminal colors. "Terminal colors"
+# refers to colors specified in your configuration and colors produced by
+# direct-color SGR sequences.
+# 
+# Valid values:
+# 
+#   * `srgb` - Interpret colors in the sRGB color space. This is the default.
+#   * `display-p3` - Interpret colors in the Display P3 color space.
+# 
+# This setting is currently only supported on macOS.
+window-colorspace = srgb
+# window-colorspace = display-p3
+
+clipboard-read = ask
+clipboard-write = allow
+clipboard-trim-trailing-spaces = true
+clipboard-paste-protection = true
+clipboard-paste-bracketed-safe = true
+
+title-report = false
+
+copy-on-select = clipboard
+
+config-default-files = true
+
+confirm-close-surface = true
+
+quit-after-last-window-closed = true
+
+initial-window = true
+
+quick-terminal-position = top
+quick-terminal-screen = main
+quick-terminal-animation-duration = 0.1
+quick-terminal-autohide = true
+
+# `move` or `remain`
+quick-terminal-space-behavior = move
+
+shell-integration = detect
+shell-integration-features = no-cursor,no-sudo,title
+
+app-notifications = clipboard-copy
+
+macos-non-native-fullscreen = false
+
+macos-titlebar-style = tabs
+
+# `visible` or `hidden`
+macos-titlebar-proxy-icon = visible
+
+# The values `left` or `right` enable this for the left or right *Option*
+# key, respectively.
+macos-option-as-alt = true
+
+# Whether to enable the macOS window shadow. The default value is true.
+# With some window managers and window transparency settings, you may
+# find false more visually appealing.
+macos-window-shadow = true
+macos-hidden = never
+macos-auto-secure-input = true
+macos-secure-input-indication = true
+
+#  * `official` - Use the official Ghostty icon.
+#  * `blueprint`, `chalkboard`, `microchip`, `glass`, `holographic`,
+#    `paper`, `retro`, `xray` - Official variants of the Ghostty icon
+#    hand-created by artists (no AI).
+macos-icon = official
+
+#  * `aluminum` - A brushed aluminum frame. This is the default.
+#  * `beige` - A classic 90's computer beige frame.
+#  * `plastic` - A glossy, dark plastic frame.
+#  * `chrome` - A shiny chrome frame.
+macos-icon-frame = aluminum
+
+# If `true` (default), applications running in the terminal can show desktop
+# notifications using certain escape sequences such as OSC 9 or OSC 777.
+desktop-notifications = true
+
+# If `true`, the bold text will use the bright color palette.
+bold-is-bright = false
+
+# This will be used to set the `TERM` environment variable.
+# HACK: We set this with an `xterm` prefix because vim uses that to enable key
+# protocols (specifically this will enable `modifyOtherKeys`), among other
+# features. An option exists in vim to modify this: `:set
+# keyprotocol=ghostty:kitty`, however a bug in the implementation prevents it
+# from working properly. https://github.com/vim/vim/pull/13211 fixes this.
+term = xterm-ghostty
+
+async-backend = auto
+
+auto-update = download
+
+#  * `stable` - Stable, tagged releases such as "1.0.0".
+#  * `tip` - Pre-release versions generated from each commit to the
+#    main branch. This is the version that was in use during private
+#    beta testing by thousands of people. It is generally stable but
+#    will likely have more bugs than the stable channel.
+auto-update-channel = tip
+
+# `command` (the Nix fish path) lives in nix.conf, generated per machine by
+# home-manager (nix/home/default.nix).
+config-file = ?nix.conf

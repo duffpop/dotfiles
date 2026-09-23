@@ -1,0 +1,41 @@
+#!/bin/bash
+
+## JankyBorders
+# https://github.com/FelixKratz/JankyBorders
+
+# map color names
+get_hex() {
+  case $1 in
+  # dracula theme
+  cyan) echo "8BE9FD" ;;
+  green) echo "50FA7B" ;;
+  orange) echo "FFB86C" ;;
+  pink) echo "FF79C6" ;;
+  purple) echo "BD93F9" ;;
+  red) echo "FF5555" ;;
+  yellow) echo "F1FA8C" ;;
+  current) echo "6272A4" ;;
+  background) echo "282A36" ;;
+
+  # default color
+  *) echo "44474A" ;;
+  esac
+}
+
+# set color
+act_color="green"
+ina_color="background"
+# bg_color="pink"
+
+OPTIONS=(
+  hidpi=on
+  width=5.0
+  # width=3.0
+  style=round
+  # blur_radius=80.0
+  # background_color="0xff$(get_hex $bg_color)"
+  active_color="0xff$(get_hex $act_color)"
+  inactive_color="0xff$(get_hex $ina_color)"
+)
+
+borders "${OPTIONS[@]}"

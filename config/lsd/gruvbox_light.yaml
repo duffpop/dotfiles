@@ -1,0 +1,25 @@
+# colors.yaml
+user: 108 # Ansi 6 Color
+group: 241 # Ansi 7 Color
+permission:
+  read: 67 # Ansi 4 Color
+  write: 132 # Ansi 5 Color
+  exec: 108 # Ansi 6 Color
+  exec-sticky: 108 # Ansi 6 Color
+  no-access: 124 # Ansi 1 Color
+date:
+  hour-old: 101 # Ansi 8 Color, 20% lighter
+  day-old: 241 # Ansi 7 Color
+  older: 243 # Ansi 8 Color
+size:
+  none: 243 # Ansi 8 Color
+  small: 106 # Ansi 2 Color
+  medium: 172 # Ansi 3 Color
+  large: 124 # Ansi 1 Color
+inode:
+  valid: 241 # Ansi 7 Color
+  invalid: 124 # Ansi 1 Color
+links:
+  valid: 108 # Ansi 6 Color
+  invalid: 124 # Ansi 1 Color
+tree-edge: 67 # Ansi 4 Color
