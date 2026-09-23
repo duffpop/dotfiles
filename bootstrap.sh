@@ -24,16 +24,32 @@ set_aside() { # set_aside <suffix> <sudo|""> <paths...>
   done
 }
 
+# The body is a function so bash reads the whole script before running it:
+# under `curl | bash` any step that reads stdin would otherwise eat the rest.
+main() {
+# 0. Ask for the password once, up front, and keep sudo alive for the whole run
+# (Homebrew's non-interactive installer, Nix and nix-darwin all need it, and the
+# first run outlasts sudo's 5-minute timeout). sudo reads the password from the
+# terminal, so this works under `curl | bash`.
+log "Administrator password needed (Homebrew, Nix, system settings)"
+sudo -v
+while true; do
+  sudo -n true
+  sleep 50
+  kill -0 "$$" 2>/dev/null || exit
+done 2>/dev/null &
+
 # 1. Prerequisites: git + curl
 if [ "$OS" = Darwin ]; then
-  if ! xcode-select -p >/dev/null 2>&1; then
-    log "Installing Xcode Command Line Tools (finish the dialog, then re-run this script)"
-    xcode-select --install
-    exit 0
-  fi
   if [ ! -x /opt/homebrew/bin/brew ]; then
-    log "Installing Homebrew (nix-darwin drives it for casks + App Store apps)"
+    # Also installs the Xcode Command Line Tools (git) without a GUI dialog.
+    log "Installing Homebrew + Command Line Tools (nix-darwin drives Homebrew for casks + App Store apps)"
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  fi
+  if ! xcode-select -p >/dev/null 2>&1; then
+    log "Installing Xcode Command Line Tools: finish the dialog; this script waits"
+    xcode-select --install || true
+    until xcode-select -p >/dev/null 2>&1; do sleep 5; done
   fi
   eval "$(/opt/homebrew/bin/brew shellenv)"
 else
@@ -88,3 +104,6 @@ Next:
   - Open a new terminal (bash hands over to fish).
 EOF
 fi
+}
+
+main "$@"
